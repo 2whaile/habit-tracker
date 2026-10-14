@@ -25,7 +25,6 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.12); }
         }
-        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -38,6 +37,47 @@
     <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-50">
         <i class="fa-solid fa-circle-check text-emerald-400"></i>
         <span id="toast-msg">저장되었습니다.</span>
+    </div>
+
+    <!-- 카테고리 관리 모달 -->
+    <div id="category-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-indigo-600"></i> 분류(카테고리) 편집
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- 새 카테고리 추가 폼 -->
+            <form id="add-category-form" class="flex gap-2">
+                <input type="text" id="new-cat-name" placeholder="새 분류 이름 (예: 🎨 드로잉)" required
+                    class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="new-cat-color" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none">
+                    <option value="indigo">🟦 파랑</option>
+                    <option value="emerald">🟩 초록</option>
+                    <option value="amber">🟨 노랑</option>
+                    <option value="purple">🟪 보라</option>
+                    <option value="rose">🟥 분홍</option>
+                    <option value="sky">🩵 하늘</option>
+                    <option value="slate">⬜ 회색</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shrink-0">
+                    추가
+                </button>
+            </form>
+
+            <!-- 등록된 카테고리 목록 -->
+            <div class="space-y-2 max-h-64 overflow-y-auto pr-1" id="modal-category-list">
+                <!-- JS 렌더링 -->
+            </div>
+
+            <div class="text-[12px] text-slate-400 bg-slate-50 p-3 rounded-xl leading-relaxed">
+                💡 <b>팁:</b> 분류 이름을 누르면 이름을 수정할 수 있습니다. 표에 이미 등록된 목표의 분류 뱃지를 클릭해도 다른 분류로 바로 변경됩니다.
+            </div>
+        </div>
     </div>
 
     <div class="max-w-6xl mx-auto space-y-6">
@@ -71,7 +111,6 @@
 
         <!-- 상단 스탯 요약 (4단 그리드) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- 오늘 달성률 -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">오늘의 목표 달성</p>
@@ -82,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- 주간 전체 달성률 -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">주간 누적 달성률</p>
@@ -93,7 +131,6 @@
                 </div>
             </div>
 
-            <!-- 최고 연속 달성 (Best Streak) -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">주간 최장 스트릭</p>
@@ -104,7 +141,6 @@
                 </div>
             </div>
 
-            <!-- 완벽 달성한 요일 (Perfect Days) -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
                 <div>
                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">100% 올클리어 데이</p>
@@ -120,30 +156,28 @@
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 space-y-4">
             <form id="habit-form" class="flex flex-col sm:flex-row gap-3">
                 <select id="habit-category" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="집중">📚 작업/집필</option>
-                    <option value="건강">💪 건강/운동</option>
-                    <option value="생활">🌱 생활습관</option>
-                    <option value="성찰">🧘 마인드</option>
+                    <!-- JS로 동적 렌더링 -->
                 </select>
-                <input type="text" id="habit-input" placeholder="새로운 일일 목표 입력 (팁: 등록 후 목표 이름을 더블클릭하면 바로 수정할 수 있습니다)" required
+                <input type="text" id="habit-input" placeholder="새로운 일일 목표 입력 (팁: 목표 이름은 더블클릭, 분류 뱃지는 클릭하여 수정 가능)" required
                     class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i> 목표 추가
                 </button>
             </form>
 
-            <!-- 필터 탭 & 오늘 일괄 완료 버튼 -->
+            <!-- 필터 탭 & 분류 편집 / 일괄 완료 버튼 -->
             <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                <div class="flex items-center gap-1.5" id="filter-tabs">
-                    <button onclick="setFilter('전체')" data-filter="전체" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white transition">전체</button>
-                    <button onclick="setFilter('집중')" data-filter="집중" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">📚 작업/집필</button>
-                    <button onclick="setFilter('건강')" data-filter="건강" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">💪 건강/운동</button>
-                    <button onclick="setFilter('생활')" data-filter="생활" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">🌱 생활습관</button>
-                    <button onclick="setFilter('성찰')" data-filter="성찰" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">🧘 마인드</button>
+                <div class="flex flex-wrap items-center gap-1.5" id="filter-tabs">
+                    <!-- JS로 동적 렌더링 -->
                 </div>
-                <button onclick="checkAllToday()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-2 py-1 rounded hover:bg-indigo-50 transition">
-                    <i class="fa-solid fa-check-double"></i> 오늘 목표 일괄 체크
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="openCategoryModal()" class="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-gear"></i> 분류 편집
+                    </button>
+                    <button onclick="checkAllToday()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 transition">
+                        <i class="fa-solid fa-check-double"></i> 오늘 일괄 체크
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -153,7 +187,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase">
-                            <th class="py-4 px-6 min-w-[260px]">일일 목표 <span class="text-[11px] font-normal text-slate-400 ml-1">(더블클릭하여 수정)</span></th>
+                            <th class="py-4 px-6 min-w-[260px]">일일 목표 <span class="text-[11px] font-normal text-slate-400 ml-1">(뱃지 클릭: 분류 변경 / 제목 더블클릭: 수정)</span></th>
                             <th class="py-4 px-2 text-center w-14 day-header" data-day="0">월</th>
                             <th class="py-4 px-2 text-center w-14 day-header" data-day="1">화</th>
                             <th class="py-4 px-2 text-center w-14 day-header" data-day="2">수</th>
@@ -169,7 +203,6 @@
                     <tbody id="habit-list" class="divide-y divide-slate-100 text-sm">
                         <!-- JS로 렌더링됨 -->
                     </tbody>
-                    <!-- 요일별 달성률 푸터 -->
                     <tfoot class="bg-slate-50/60 border-t border-slate-100 text-xs text-slate-500 font-medium">
                         <tr id="daily-summary-row">
                             <!-- JS로 렌더링됨 -->
@@ -178,7 +211,6 @@
                 </table>
             </div>
             
-            <!-- 빈 상태 안내 -->
             <div id="empty-state" class="hidden py-12 text-center text-slate-400">
                 <i class="fa-regular fa-clipboard text-4xl mb-3"></i>
                 <p class="text-sm">표시할 목표가 없습니다. 위 입력창에서 목표를 추가해 보세요!</p>
@@ -205,9 +237,7 @@
                 </div>
             </div>
 
-            <!-- KPT 3단 그리드 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Keep -->
                 <div class="bg-emerald-50/40 border border-emerald-200/70 rounded-xl p-4 flex flex-col">
                     <label class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -217,7 +247,6 @@
                         class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-none flex-1"></textarea>
                 </div>
 
-                <!-- Problem -->
                 <div class="bg-rose-50/40 border border-rose-200/70 rounded-xl p-4 flex flex-col">
                     <label class="text-xs font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                         <span class="w-2 h-2 rounded-full bg-rose-500"></span>
@@ -227,7 +256,6 @@
                         class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-none flex-1"></textarea>
                 </div>
 
-                <!-- Try -->
                 <div class="bg-indigo-50/40 border border-indigo-200/70 rounded-xl p-4 flex flex-col">
                     <label class="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                         <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -238,7 +266,6 @@
                 </div>
             </div>
 
-            <!-- 자유 메모 & 영감 노트 -->
             <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -255,41 +282,62 @@
     </div>
 
     <script>
-        // 현재 요일 계산 (월요일=0 ~ 일요일=6)
         const now = new Date();
         const currentDayIndex = (now.getDay() + 6) % 7; 
         const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
 
         let currentFilter = '전체';
 
-        // 초기 샘플 습관 데이터
-        const defaultHabits = [
-            { id: 1, title: '오전 집중 집필 / 작업 1시간', category: '집중', checks: [true, true, true, false, false, false, false] },
-            { id: 2, title: '자료 조사 및 아이디어 노트 정리 30분', category: '집중', checks: [true, false, true, false, false, false, false] },
-            { id: 3, title: '물 2L 마시기 & 스트레칭', category: '건강', checks: [true, true, true, false, false, false, false] },
-            { id: 4, title: '취침 전 일일 회고 및 독서 30분', category: '생활', checks: [true, true, false, false, false, false, false] }
-        ];
-
-        // 초기 회고 메모 데이터
-        const defaultMemos = {
-            keep: '',
-            problem: '',
-            try: '',
-            free: ''
+        // 색상 테마 팔레트 매핑
+        const colorPalette = {
+            indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            amber: 'bg-amber-50 text-amber-700 border-amber-200',
+            purple: 'bg-purple-50 text-purple-700 border-purple-200',
+            rose: 'bg-rose-50 text-rose-700 border-rose-200',
+            sky: 'bg-sky-50 text-sky-700 border-sky-200',
+            slate: 'bg-slate-100 text-slate-700 border-slate-300'
         };
 
+        // 기본 카테고리 목록
+        const defaultCategories = [
+            { name: '📚 작업/집필', color: 'indigo' },
+            { name: '💪 건강/운동', color: 'emerald' },
+            { name: '🌱 생활습관', color: 'amber' },
+            { name: '🧘 마인드', color: 'purple' }
+        ];
+
+        // 초기 샘플 습관 데이터
+        const defaultHabits = [
+            { id: 1, title: '오전 집중 집필 / 작업 1시간', category: '📚 작업/집필', checks: [true, true, true, false, false, false, false] },
+            { id: 2, title: '자료 조사 및 아이디어 노트 정리 30분', category: '📚 작업/집필', checks: [true, false, true, false, false, false, false] },
+            { id: 3, title: '물 2L 마시기 & 스트레칭', category: '💪 건강/운동', checks: [true, true, true, false, false, false, false] },
+            { id: 4, title: '취침 전 일일 회고 및 독서 30분', category: '🌱 생활습관', checks: [true, true, false, false, false, false, false] }
+        ];
+
+        const defaultMemos = { keep: '', problem: '', try: '', free: '' };
+
+        let categories = JSON.parse(localStorage.getItem('weekly_categories_v2')) || defaultCategories;
         let habits = JSON.parse(localStorage.getItem('weekly_habits_v2')) || defaultHabits;
         let memos = JSON.parse(localStorage.getItem('weekly_memos_v2')) || defaultMemos;
 
-        // 카테고리별 뱃지 색상
-        const categoryBadges = {
-            '집중': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-            '건강': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            '생활': 'bg-amber-50 text-amber-700 border-amber-200',
-            '성찰': 'bg-purple-50 text-purple-700 border-purple-200'
-        };
+        // 기존 구버전 카테고리 이름('집중', '건강' 등) 호환 처리
+        function syncLegacyCategories() {
+            const existingNames = new Set(categories.map(c => c.name));
+            habits.forEach(h => {
+                if (h.category && !existingNames.has(h.category)) {
+                    categories.push({ name: h.category, color: 'indigo' });
+                    existingNames.add(h.category);
+                }
+            });
+            localStorage.setItem('weekly_categories_v2', JSON.stringify(categories));
+        }
 
-        // 토스트 알림 함수
+        function getCategoryBadgeClass(catName) {
+            const found = categories.find(c => c.name === catName);
+            return found ? (colorPalette[found.color] || colorPalette.slate) : colorPalette.slate;
+        }
+
         function showToast(msg) {
             const toast = document.getElementById('toast');
             document.getElementById('toast-msg').textContent = msg;
@@ -301,7 +349,6 @@
             }, 2200);
         }
 
-        // 초기 헤더 세팅
         function initHeader() {
             const dateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 (${dayNames[currentDayIndex]}요일)`;
             document.getElementById('current-date-display').textContent = dateStr;
@@ -314,7 +361,147 @@
             });
         }
 
-        // 연속 달성(Streak) 계산
+        // 카테고리 셀렉트 박스 및 필터 탭 렌더링
+        function renderCategoryControls() {
+            const selectEl = document.getElementById('habit-category');
+            const filterContainer = document.getElementById('filter-tabs');
+
+            selectEl.innerHTML = categories.map(c => 
+                `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`
+            ).join('');
+
+            let filterHtml = `
+                <button onclick="setFilter('전체')" class="filter-btn px-3 py-1.5 rounded-lg text-xs ${currentFilter === '전체' ? 'font-bold bg-slate-800 text-white' : 'font-medium bg-slate-100 text-slate-600 hover:bg-slate-200'} transition">전체</button>
+            `;
+            categories.forEach(c => {
+                const isActive = currentFilter === c.name;
+                filterHtml += `
+                    <button onclick="setFilter('${escapeJsString(c.name)}')" class="filter-btn px-3 py-1.5 rounded-lg text-xs ${isActive ? 'font-bold bg-slate-800 text-white' : 'font-medium bg-slate-100 text-slate-600 hover:bg-slate-200'} transition">${escapeHtml(c.name)}</button>
+                `;
+            });
+            filterContainer.innerHTML = filterHtml;
+        }
+
+        // ---------------- 카테고리 관리 모달 로직 ----------------
+        function openCategoryModal() {
+            renderModalCategories();
+            const modal = document.getElementById('category-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCategoryModal() {
+            const modal = document.getElementById('category-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function renderModalCategories() {
+            const listEl = document.getElementById('modal-category-list');
+            listEl.innerHTML = categories.map((c, idx) => {
+                const badgeClass = colorPalette[c.color] || colorPalette.slate;
+                return `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+                        <span onclick="renameCategory(${idx})" class="text-xs px-3 py-1 rounded-full border font-semibold cursor-pointer hover:opacity-80 transition ${badgeClass}" title="클릭하여 이름 수정">
+                            ${escapeHtml(c.name)} <i class="fa-solid fa-pen text-[10px] ml-1 opacity-60"></i>
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <select onchange="changeCategoryColor(${idx}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-600">
+                                <option value="indigo" ${c.color === 'indigo' ? 'selected' : ''}>🟦 파랑</option>
+                                <option value="emerald" ${c.color === 'emerald' ? 'selected' : ''}>🟩 초록</option>
+                                <option value="amber" ${c.color === 'amber' ? 'selected' : ''}>🟨 노랑</option>
+                                <option value="purple" ${c.color === 'purple' ? 'selected' : ''}>🟪 보라</option>
+                                <option value="rose" ${c.color === 'rose' ? 'selected' : ''}>🟥 분홍</option>
+                                <option value="sky" ${c.color === 'sky' ? 'selected' : ''}>🩵 하늘</option>
+                                <option value="slate" ${c.color === 'slate' ? 'selected' : ''}>⬜ 회색</option>
+                            </select>
+                            <button onclick="deleteCategory(${idx})" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition" title="분류 삭제">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('add-category-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('new-cat-name');
+            const colorSelect = document.getElementById('new-cat-color');
+            const newName = nameInput.value.trim();
+
+            if (!newName) return;
+            if (categories.some(c => c.name === newName)) {
+                alert('이미 같은 이름의 분류가 있습니다.');
+                return;
+            }
+
+            categories.push({ name: newName, color: colorSelect.value });
+            nameInput.value = '';
+            saveCategoriesAndRefresh();
+            renderModalCategories();
+            showToast('새 분류가 추가되었습니다.');
+        });
+
+        function renameCategory(idx) {
+            const oldName = categories[idx].name;
+            const newName = prompt('새 분류 이름을 입력하세요:', oldName);
+            if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+                const trimmed = newName.trim();
+                categories[idx].name = trimmed;
+                habits.forEach(h => {
+                    if (h.category === oldName) h.category = trimmed;
+                });
+                if (currentFilter === oldName) currentFilter = trimmed;
+                saveCategoriesAndRefresh();
+                renderModalCategories();
+                showToast('분류 이름이 변경되었습니다.');
+            }
+        }
+
+        function changeCategoryColor(idx, newColor) {
+            categories[idx].color = newColor;
+            saveCategoriesAndRefresh();
+            renderModalCategories();
+        }
+
+        function deleteCategory(idx) {
+            if (categories.length <= 1) {
+                alert('최소 1개의 분류는 남아있어야 합니다.');
+                return;
+            }
+            const targetName = categories[idx].name;
+            if (confirm(`'${targetName}' 분류를 삭제하시겠습니까?\n(이 분류에 속한 기존 목표들은 첫 번째 분류로 이동됩니다)`)) {
+                categories.splice(idx, 1);
+                const fallbackCategory = categories[0].name;
+                habits.forEach(h => {
+                    if (h.category === targetName) h.category = fallbackCategory;
+                });
+                if (currentFilter === targetName) currentFilter = '전체';
+                saveCategoriesAndRefresh();
+                renderModalCategories();
+                showToast('분류가 삭제되었습니다.');
+            }
+        }
+
+        function saveCategoriesAndRefresh() {
+            localStorage.setItem('weekly_categories_v2', JSON.stringify(categories));
+            renderCategoryControls();
+            saveAndRender();
+        }
+
+        // 목표의 카테고리 뱃지 클릭 시 다음 카테고리로 순환 변경
+        function cycleHabitCategory(habitId) {
+            const habit = habits.find(h => h.id === habitId);
+            if (!habit || categories.length === 0) return;
+            const currentIdx = categories.findIndex(c => c.name === habit.category);
+            const nextIdx = (currentIdx + 1) % categories.length;
+            habit.category = categories[nextIdx].name;
+            saveAndRender();
+            showToast(`분류가 '${habit.category}'(으)로 변경되었습니다.`);
+        }
+
+        // ---------------- 스트릭 및 메인 보드 로직 ----------------
         function calculateStreak(checks) {
             let currentStreak = 0;
             let maxStreak = 0;
@@ -341,27 +528,18 @@
             return { currentStreak, maxStreak };
         }
 
-        // 저장 및 전체 렌더링
         function saveAndRender() {
             localStorage.setItem('weekly_habits_v2', JSON.stringify(habits));
             renderHabits();
             updateStats();
         }
 
-        // 카테고리 필터 변경
         function setFilter(category) {
             currentFilter = category;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                if (btn.getAttribute('data-filter') === category) {
-                    btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white transition';
-                } else {
-                    btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
-                }
-            });
+            renderCategoryControls();
             renderHabits();
         }
 
-        // 습관 목록 및 요일별 요약 렌더링
         function renderHabits() {
             const listEl = document.getElementById('habit-list');
             const emptyEl = document.getElementById('empty-state');
@@ -382,22 +560,22 @@
             filteredHabits.forEach((habit) => {
                 const { currentStreak } = calculateStreak(habit.checks);
                 const weeklyCount = habit.checks.filter(Boolean).length;
-                const badgeClass = categoryBadges[habit.category] || 'bg-slate-100 text-slate-700';
+                const badgeClass = getCategoryBadgeClass(habit.category);
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/90 transition group';
 
-                // 목표 제목 영역 (더블클릭 시 수정)
                 let rowHtml = `
                     <td class="py-3.5 px-6">
                         <div class="flex items-center gap-2.5">
-                            <span class="text-xs px-2.5 py-0.5 rounded-full border font-medium shrink-0 ${badgeClass}">${habit.category}</span>
+                            <button onclick="cycleHabitCategory(${habit.id})" class="text-xs px-2.5 py-0.5 rounded-full border font-medium shrink-0 hover:opacity-80 transition ${badgeClass}" title="클릭하면 다른 분류로 바뀝니다">
+                                ${escapeHtml(habit.category)}
+                            </button>
                             <span ondblclick="editHabitTitle(${habit.id})" class="font-medium text-slate-800 cursor-pointer hover:text-indigo-600 transition" title="더블클릭하여 제목 수정">${escapeHtml(habit.title)}</span>
                         </div>
                     </td>
                 `;
 
-                // 월~일 체크 버튼
                 for (let day = 0; day < 7; day++) {
                     const isChecked = habit.checks[day];
                     const isToday = day === currentDayIndex;
@@ -417,21 +595,18 @@
                     `;
                 }
 
-                // 주간 달성 횟수 (N/7)
                 rowHtml += `
                     <td class="py-3.5 px-3 text-center">
                         <span class="text-xs font-semibold ${weeklyCount === 7 ? 'text-emerald-600 font-bold' : 'text-slate-600'}">${weeklyCount} / 7</span>
                     </td>
                 `;
 
-                // 연속 달성 뱃지
                 const streakBadge = currentStreak > 0 
                     ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200">
                          <i class="fa-solid fa-fire text-orange-500"></i> ${currentStreak}일 연속
                        </span>`
                     : `<span class="text-xs text-slate-300 font-medium">-</span>`;
 
-                // 순서 이동 및 삭제 버튼
                 rowHtml += `
                     <td class="py-3.5 px-3 text-center">${streakBadge}</td>
                     <td class="py-3.5 px-4 text-center">
@@ -453,7 +628,6 @@
                 listEl.appendChild(tr);
             });
 
-            // 하단 요일별 달성도 미니 프로그레스 바 렌더링
             let footerHtml = `<td class="py-3 px-6 font-semibold text-slate-500">요일별 달성률</td>`;
             for (let day = 0; day < 7; day++) {
                 const completedInDay = filteredHabits.filter(h => h.checks[day]).length;
@@ -473,7 +647,6 @@
             summaryRow.innerHTML = footerHtml;
         }
 
-        // 상단 요약 통계 업데이트
         function updateStats() {
             const totalHabits = habits.length;
             if (totalHabits === 0) {
@@ -499,7 +672,6 @@
                 if (maxStreak > bestStreakOverall) bestStreakOverall = maxStreak;
             });
 
-            // 100% 올클리어한 요일 수 계산
             for (let day = 0; day < 7; day++) {
                 const allDone = habits.every(h => h.checks[day]);
                 if (allDone) perfectDays++;
@@ -516,7 +688,6 @@
             document.getElementById('perfect-days-text').textContent = perfectDays;
         }
 
-        // 체크 토글 액션
         function toggleCheck(habitId, dayIndex) {
             const habit = habits.find(h => h.id === habitId);
             if (habit) {
@@ -525,7 +696,6 @@
             }
         }
 
-        // 오늘 목표 일괄 체크
         function checkAllToday() {
             const targetHabits = currentFilter === '전체' ? habits : habits.filter(h => h.category === currentFilter);
             if (targetHabits.length === 0) return;
@@ -538,7 +708,6 @@
             showToast(allChecked ? '오늘 체크가 일괄 해제되었습니다.' : '오늘 목표를 모두 달성 처리했습니다! 🎉');
         }
 
-        // 목표 이름 더블클릭 수정
         function editHabitTitle(habitId) {
             const habit = habits.find(h => h.id === habitId);
             if (!habit) return;
@@ -550,7 +719,6 @@
             }
         }
 
-        // 목표 위/아래 순서 이동
         function moveHabit(habitId, direction) {
             const index = habits.findIndex(h => h.id === habitId);
             if (index === -1) return;
@@ -563,7 +731,6 @@
             saveAndRender();
         }
 
-        // 새 목표 추가
         document.getElementById('habit-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const inputEl = document.getElementById('habit-input');
@@ -584,7 +751,6 @@
             showToast('새로운 목표가 추가되었습니다.');
         });
 
-        // 목표 삭제
         function deleteHabit(habitId) {
             if (confirm('이 목표를 삭제하시겠습니까?')) {
                 habits = habits.filter(h => h.id !== habitId);
@@ -593,7 +759,6 @@
             }
         }
 
-        // 주간 초기화
         function resetWeek() {
             if (confirm('새로운 한 주를 시작하기 위해 체크 기록을 모두 초기화할까요?\n(등록된 목표 목록과 회고 메모는 유지됩니다)')) {
                 habits.forEach(habit => {
@@ -604,7 +769,6 @@
             }
         }
 
-        // ---------------- 주간 회고 메모장 로직 ----------------
         function initMemos() {
             const keepEl = document.getElementById('memo-keep');
             const problemEl = document.getElementById('memo-problem');
@@ -650,7 +814,6 @@
             }
         }
 
-        // ---------------- 리포트 복사 & 백업/복원 ----------------
         function copyWeeklyReport() {
             const totalChecks = habits.reduce((acc, h) => acc + h.checks.filter(Boolean).length, 0);
             const weeklyPercent = habits.length ? Math.round((totalChecks / (habits.length * 7)) * 100) : 0;
@@ -678,7 +841,7 @@
         }
 
         function exportData() {
-            const data = { habits, memos, exportedAt: new Date().toISOString() };
+            const data = { categories, habits, memos, exportedAt: new Date().toISOString() };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -696,14 +859,20 @@
             reader.onload = function(e) {
                 try {
                     const imported = JSON.parse(e.target.result);
+                    if (imported.categories && Array.isArray(imported.categories)) {
+                        categories = imported.categories;
+                    }
                     if (imported.habits && Array.isArray(imported.habits)) {
                         habits = imported.habits;
                     }
                     if (imported.memos) {
                         memos = imported.memos;
                     }
+                    localStorage.setItem('weekly_categories_v2', JSON.stringify(categories));
                     localStorage.setItem('weekly_habits_v2', JSON.stringify(habits));
                     localStorage.setItem('weekly_memos_v2', JSON.stringify(memos));
+                    syncLegacyCategories();
+                    renderCategoryControls();
                     initMemos();
                     saveAndRender();
                     showToast('백업 데이터가 성공적으로 복원되었습니다!');
@@ -715,15 +884,20 @@
             event.target.value = '';
         }
 
-        // XSS 방지 헬퍼
         function escapeHtml(str) {
-            return str.replace(/[&<>'"]/g, tag => ({
+            return String(str).replace(/[&<>'"]/g, tag => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
             }[tag]));
         }
 
+        function escapeJsString(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
         // 초기 실행
+        syncLegacyCategories();
         initHeader();
+        renderCategoryControls();
         initMemos();
         saveAndRender();
     </script>
