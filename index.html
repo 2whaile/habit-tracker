@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>올인원 주간 습관 & 회고 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f1f5f9;
+        }
+        .check-btn {
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .check-btn:active {
+            transform: scale(0.88);
+        }
+        .streak-flame {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+        }
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen p-4 md:p-8">
+
+    <!-- 토스트 알림 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-msg">저장되었습니다.</span>
+    </div>
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- 헤더 & 유틸리티 툴바 -->
+        <header class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/70 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-2 text-indigo-600 font-semibold text-sm mb-1">
+                    <i class="fa-solid fa-calendar-week"></i>
+                    <span id="current-date-display">이번 주 루틴 관리</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900">주간 습관 & 회고 대시보드</h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                <button onclick="copyWeeklyReport()" class="px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition flex items-center gap-1.5" title="이번 주 기록과 회고를 텍스트로 복사합니다">
+                    <i class="fa-regular fa-copy"></i> 주간 리포트 복사
+                </button>
+                <button onclick="exportData()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5" title="JSON 파일로 백업">
+                    <i class="fa-solid fa-download"></i> 백업
+                </button>
+                <label class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer" title="백업 파일 불러오기">
+                    <i class="fa-solid fa-upload"></i> 복원
+                    <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+                </label>
+                <button onclick="resetWeek()" class="px-3.5 py-2 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> 새 주간 시작(초기화)
+                </button>
+            </div>
+        </header>
+
+        <!-- 상단 스탯 요약 (4단 그리드) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 오늘 달성률 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">오늘의 목표 달성</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1" id="today-progress-text">0 / 0</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base font-bold" id="today-percent-badge">
+                    0%
+                </div>
+            </div>
+
+            <!-- 주간 전체 달성률 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">주간 누적 달성률</p>
+                    <span class="text-sm font-bold text-emerald-600" id="weekly-percent-text">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div id="weekly-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 최고 연속 달성 (Best Streak) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">주간 최장 스트릭</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1"><span id="best-streak-text">0</span>일 연속</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-fire streak-flame"></i>
+                </div>
+            </div>
+
+            <!-- 완벽 달성한 요일 (Perfect Days) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">100% 올클리어 데이</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1"><span id="perfect-days-text">0</span>일 / 7일</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 새 습관 추가 & 카테고리 필터 -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/70 space-y-4">
+            <form id="habit-form" class="flex flex-col sm:flex-row gap-3">
+                <select id="habit-category" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="집중">📚 작업/집필</option>
+                    <option value="건강">💪 건강/운동</option>
+                    <option value="생활">🌱 생활습관</option>
+                    <option value="성찰">🧘 마인드</option>
+                </select>
+                <input type="text" id="habit-input" placeholder="새로운 일일 목표 입력 (팁: 등록 후 목표 이름을 더블클릭하면 바로 수정할 수 있습니다)" required
+                    class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl transition shadow-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> 목표 추가
+                </button>
+            </form>
+
+            <!-- 필터 탭 & 오늘 일괄 완료 버튼 -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <div class="flex items-center gap-1.5" id="filter-tabs">
+                    <button onclick="setFilter('전체')" data-filter="전체" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white transition">전체</button>
+                    <button onclick="setFilter('집중')" data-filter="집중" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">📚 작업/집필</button>
+                    <button onclick="setFilter('건강')" data-filter="건강" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">💪 건강/운동</button>
+                    <button onclick="setFilter('생활')" data-filter="생활" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">🌱 생활습관</button>
+                    <button onclick="setFilter('성찰')" data-filter="성찰" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">🧘 마인드</button>
+                </div>
+                <button onclick="checkAllToday()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 px-2 py-1 rounded hover:bg-indigo-50 transition">
+                    <i class="fa-solid fa-check-double"></i> 오늘 목표 일괄 체크
+                </button>
+            </div>
+        </div>
+
+        <!-- 주간 습관 보드 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/70 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase">
+                            <th class="py-4 px-6 min-w-[260px]">일일 목표 <span class="text-[11px] font-normal text-slate-400 ml-1">(더블클릭하여 수정)</span></th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="0">월</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="1">화</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="2">수</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="3">목</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="4">금</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="5">토</th>
+                            <th class="py-4 px-2 text-center w-14 day-header" data-day="6">일</th>
+                            <th class="py-4 px-3 text-center w-24">주간 달성</th>
+                            <th class="py-4 px-3 text-center w-28">연속 기록</th>
+                            <th class="py-4 px-4 text-center w-24">순서/삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="habit-list" class="divide-y divide-slate-100 text-sm">
+                        <!-- JS로 렌더링됨 -->
+                    </tbody>
+                    <!-- 요일별 달성률 푸터 -->
+                    <tfoot class="bg-slate-50/60 border-t border-slate-100 text-xs text-slate-500 font-medium">
+                        <tr id="daily-summary-row">
+                            <!-- JS로 렌더링됨 -->
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- 빈 상태 안내 -->
+            <div id="empty-state" class="hidden py-12 text-center text-slate-400">
+                <i class="fa-regular fa-clipboard text-4xl mb-3"></i>
+                <p class="text-sm">표시할 목표가 없습니다. 위 입력창에서 목표를 추가해 보세요!</p>
+            </div>
+        </div>
+
+        <!-- 주간 회고 & 메모 섹션 -->
+        <section class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/70 space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-nib text-indigo-600"></i>
+                        주간 회고 및 아이디어 메모장
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">이번 주 루틴을 돌아보며 KPT 회고나 자유로운 단상을 기록하세요. (입력 시 자동 저장됩니다)</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="memo-save-status" class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 자동 저장됨
+                    </span>
+                    <button onclick="clearMemos()" class="text-xs text-slate-400 hover:text-rose-500 transition">
+                        메모 비우기
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPT 3단 그리드 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Keep -->
+                <div class="bg-emerald-50/40 border border-emerald-200/70 rounded-xl p-4 flex flex-col">
+                    <label class="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Keep (유지할 점 / 잘한 것)
+                    </label>
+                    <textarea id="memo-keep" rows="4" placeholder="이번 주 꾸준히 지킨 습관이나 만족스러웠던 작업 루틴을 적어보세요."
+                        class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-none flex-1"></textarea>
+                </div>
+
+                <!-- Problem -->
+                <div class="bg-rose-50/40 border border-rose-200/70 rounded-xl p-4 flex flex-col">
+                    <label class="text-xs font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        Problem (아쉬운 점 / 방해 요인)
+                    </label>
+                    <textarea id="memo-problem" rows="4" placeholder="목표 달성을 방해했던 요소나 컨디션 조절에서 아쉬웠던 점을 적어보세요."
+                        class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-none flex-1"></textarea>
+                </div>
+
+                <!-- Try -->
+                <div class="bg-indigo-50/40 border border-indigo-200/70 rounded-xl p-4 flex flex-col">
+                    <label class="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        Try (다음 주 시도할 점 / 개선안)
+                    </label>
+                    <textarea id="memo-try" rows="4" placeholder="다음 주에 새롭게 조정할 목표 분량이나 시간대 변경 등을 계획해보세요."
+                        class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-none flex-1"></textarea>
+                </div>
+            </div>
+
+            <!-- 자유 메모 & 영감 노트 -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-regular fa-lightbulb text-amber-500"></i>
+                        자유 메모 & 주간 단상 (Free Note)
+                    </label>
+                    <span id="memo-char-count" class="text-[11px] text-slate-400">0자</span>
+                </div>
+                <textarea id="memo-free" rows="4" placeholder="이번 주 떠오른 영감, 작업 메모, 컨디션 기록 등 자유롭게 작성하세요..."
+                    class="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none resize-y"></textarea>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // 현재 요일 계산 (월요일=0 ~ 일요일=6)
+        const now = new Date();
+        const currentDayIndex = (now.getDay() + 6) % 7; 
+        const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+
+        let currentFilter = '전체';
+
+        // 초기 샘플 습관 데이터
+        const defaultHabits = [
+            { id: 1, title: '오전 집중 집필 / 작업 1시간', category: '집중', checks: [true, true, true, false, false, false, false] },
+            { id: 2, title: '자료 조사 및 아이디어 노트 정리 30분', category: '집중', checks: [true, false, true, false, false, false, false] },
+            { id: 3, title: '물 2L 마시기 & 스트레칭', category: '건강', checks: [true, true, true, false, false, false, false] },
+            { id: 4, title: '취침 전 일일 회고 및 독서 30분', category: '생활', checks: [true, true, false, false, false, false, false] }
+        ];
+
+        // 초기 회고 메모 데이터
+        const defaultMemos = {
+            keep: '',
+            problem: '',
+            try: '',
+            free: ''
+        };
+
+        let habits = JSON.parse(localStorage.getItem('weekly_habits_v2')) || defaultHabits;
+        let memos = JSON.parse(localStorage.getItem('weekly_memos_v2')) || defaultMemos;
+
+        // 카테고리별 뱃지 색상
+        const categoryBadges = {
+            '집중': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            '건강': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            '생활': 'bg-amber-50 text-amber-700 border-amber-200',
+            '성찰': 'bg-purple-50 text-purple-700 border-purple-200'
+        };
+
+        // 토스트 알림 함수
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2200);
+        }
+
+        // 초기 헤더 세팅
+        function initHeader() {
+            const dateStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 (${dayNames[currentDayIndex]}요일)`;
+            document.getElementById('current-date-display').textContent = dateStr;
+
+            document.querySelectorAll('.day-header').forEach(th => {
+                const day = parseInt(th.getAttribute('data-day'));
+                if (day === currentDayIndex) {
+                    th.innerHTML = `<span class="inline-block bg-indigo-600 text-white rounded-full px-2.5 py-1 text-xs font-bold shadow-sm">${dayNames[day]}</span>`;
+                }
+            });
+        }
+
+        // 연속 달성(Streak) 계산
+        function calculateStreak(checks) {
+            let currentStreak = 0;
+            let maxStreak = 0;
+            let tempStreak = 0;
+
+            for (let i = 0; i < 7; i++) {
+                if (checks[i]) {
+                    tempStreak++;
+                    if (tempStreak > maxStreak) maxStreak = tempStreak;
+                } else {
+                    tempStreak = 0;
+                }
+            }
+
+            let checkIndex = currentDayIndex;
+            if (!checks[checkIndex] && checkIndex > 0 && checks[checkIndex - 1]) {
+                checkIndex = checkIndex - 1;
+            }
+            while (checkIndex >= 0 && checks[checkIndex]) {
+                currentStreak++;
+                checkIndex--;
+            }
+
+            return { currentStreak, maxStreak };
+        }
+
+        // 저장 및 전체 렌더링
+        function saveAndRender() {
+            localStorage.setItem('weekly_habits_v2', JSON.stringify(habits));
+            renderHabits();
+            updateStats();
+        }
+
+        // 카테고리 필터 변경
+        function setFilter(category) {
+            currentFilter = category;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-filter') === category) {
+                    btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white transition';
+                } else {
+                    btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+                }
+            });
+            renderHabits();
+        }
+
+        // 습관 목록 및 요일별 요약 렌더링
+        function renderHabits() {
+            const listEl = document.getElementById('habit-list');
+            const emptyEl = document.getElementById('empty-state');
+            const summaryRow = document.getElementById('daily-summary-row');
+            listEl.innerHTML = '';
+
+            const filteredHabits = currentFilter === '전체' 
+                ? habits 
+                : habits.filter(h => h.category === currentFilter);
+
+            if (filteredHabits.length === 0) {
+                emptyEl.classList.remove('hidden');
+                summaryRow.innerHTML = '';
+                return;
+            }
+            emptyEl.classList.add('hidden');
+
+            filteredHabits.forEach((habit) => {
+                const { currentStreak } = calculateStreak(habit.checks);
+                const weeklyCount = habit.checks.filter(Boolean).length;
+                const badgeClass = categoryBadges[habit.category] || 'bg-slate-100 text-slate-700';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/90 transition group';
+
+                // 목표 제목 영역 (더블클릭 시 수정)
+                let rowHtml = `
+                    <td class="py-3.5 px-6">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-xs px-2.5 py-0.5 rounded-full border font-medium shrink-0 ${badgeClass}">${habit.category}</span>
+                            <span ondblclick="editHabitTitle(${habit.id})" class="font-medium text-slate-800 cursor-pointer hover:text-indigo-600 transition" title="더블클릭하여 제목 수정">${escapeHtml(habit.title)}</span>
+                        </div>
+                    </td>
+                `;
+
+                // 월~일 체크 버튼
+                for (let day = 0; day < 7; day++) {
+                    const isChecked = habit.checks[day];
+                    const isToday = day === currentDayIndex;
+                    
+                    const btnStyle = isChecked
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                        : (isToday ? 'bg-indigo-50/70 text-indigo-300 border-2 border-indigo-200 hover:border-indigo-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200');
+
+                    rowHtml += `
+                        <td class="py-3 px-2 text-center ${isToday ? 'bg-indigo-50/25' : ''}">
+                            <button onclick="toggleCheck(${habit.id}, ${day})" 
+                                class="check-btn w-9 h-9 rounded-xl inline-flex items-center justify-center text-sm ${btnStyle}"
+                                title="${dayNames[day]}요일 달성 체크">
+                                <i class="fa-solid fa-check ${isChecked ? 'opacity-100' : 'opacity-0'}"></i>
+                            </button>
+                        </td>
+                    `;
+                }
+
+                // 주간 달성 횟수 (N/7)
+                rowHtml += `
+                    <td class="py-3.5 px-3 text-center">
+                        <span class="text-xs font-semibold ${weeklyCount === 7 ? 'text-emerald-600 font-bold' : 'text-slate-600'}">${weeklyCount} / 7</span>
+                    </td>
+                `;
+
+                // 연속 달성 뱃지
+                const streakBadge = currentStreak > 0 
+                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-200">
+                         <i class="fa-solid fa-fire text-orange-500"></i> ${currentStreak}일 연속
+                       </span>`
+                    : `<span class="text-xs text-slate-300 font-medium">-</span>`;
+
+                // 순서 이동 및 삭제 버튼
+                rowHtml += `
+                    <td class="py-3.5 px-3 text-center">${streakBadge}</td>
+                    <td class="py-3.5 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="moveHabit(${habit.id}, -1)" class="text-slate-300 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition" title="위로 이동">
+                                <i class="fa-solid fa-chevron-up text-xs"></i>
+                            </button>
+                            <button onclick="moveHabit(${habit.id}, 1)" class="text-slate-300 hover:text-slate-600 p-1 rounded hover:bg-slate-100 transition" title="아래로 이동">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </button>
+                            <button onclick="deleteHabit(${habit.id})" class="text-slate-300 hover:text-rose-500 p-1 rounded hover:bg-rose-50 transition ml-1" title="목표 삭제">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tr.innerHTML = rowHtml;
+                listEl.appendChild(tr);
+            });
+
+            // 하단 요일별 달성도 미니 프로그레스 바 렌더링
+            let footerHtml = `<td class="py-3 px-6 font-semibold text-slate-500">요일별 달성률</td>`;
+            for (let day = 0; day < 7; day++) {
+                const completedInDay = filteredHabits.filter(h => h.checks[day]).length;
+                const dayPercent = Math.round((completedInDay / filteredHabits.length) * 100);
+                const barColor = dayPercent === 100 ? 'bg-emerald-500' : 'bg-indigo-500';
+
+                footerHtml += `
+                    <td class="py-3 px-2 text-center">
+                        <div class="text-[11px] font-bold ${dayPercent === 100 ? 'text-emerald-600' : 'text-slate-600'} mb-1">${dayPercent}%</div>
+                        <div class="w-10 mx-auto bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${dayPercent}%"></div>
+                        </div>
+                    </td>
+                `;
+            }
+            footerHtml += `<td colspan="3"></td>`;
+            summaryRow.innerHTML = footerHtml;
+        }
+
+        // 상단 요약 통계 업데이트
+        function updateStats() {
+            const totalHabits = habits.length;
+            if (totalHabits === 0) {
+                document.getElementById('today-progress-text').textContent = '0 / 0';
+                document.getElementById('today-percent-badge').textContent = '0%';
+                document.getElementById('weekly-percent-text').textContent = '0%';
+                document.getElementById('weekly-progress-bar').style.width = '0%';
+                document.getElementById('best-streak-text').textContent = '0';
+                document.getElementById('perfect-days-text').textContent = '0';
+                return;
+            }
+
+            let todayCompleted = 0;
+            let totalChecks = 0;
+            let bestStreakOverall = 0;
+            let perfectDays = 0;
+
+            habits.forEach(habit => {
+                if (habit.checks[currentDayIndex]) todayCompleted++;
+                habit.checks.forEach(c => { if (c) totalChecks++; });
+                
+                const { maxStreak } = calculateStreak(habit.checks);
+                if (maxStreak > bestStreakOverall) bestStreakOverall = maxStreak;
+            });
+
+            // 100% 올클리어한 요일 수 계산
+            for (let day = 0; day < 7; day++) {
+                const allDone = habits.every(h => h.checks[day]);
+                if (allDone) perfectDays++;
+            }
+
+            const todayPercent = Math.round((todayCompleted / totalHabits) * 100);
+            const weeklyPercent = Math.round((totalChecks / (totalHabits * 7)) * 100);
+
+            document.getElementById('today-progress-text').textContent = `${todayCompleted} / ${totalHabits}`;
+            document.getElementById('today-percent-badge').textContent = `${todayPercent}%`;
+            document.getElementById('weekly-percent-text').textContent = `${weeklyPercent}%`;
+            document.getElementById('weekly-progress-bar').style.width = `${weeklyPercent}%`;
+            document.getElementById('best-streak-text').textContent = bestStreakOverall;
+            document.getElementById('perfect-days-text').textContent = perfectDays;
+        }
+
+        // 체크 토글 액션
+        function toggleCheck(habitId, dayIndex) {
+            const habit = habits.find(h => h.id === habitId);
+            if (habit) {
+                habit.checks[dayIndex] = !habit.checks[dayIndex];
+                saveAndRender();
+            }
+        }
+
+        // 오늘 목표 일괄 체크
+        function checkAllToday() {
+            const targetHabits = currentFilter === '전체' ? habits : habits.filter(h => h.category === currentFilter);
+            if (targetHabits.length === 0) return;
+
+            const allChecked = targetHabits.every(h => h.checks[currentDayIndex]);
+            targetHabits.forEach(h => {
+                h.checks[currentDayIndex] = !allChecked;
+            });
+            saveAndRender();
+            showToast(allChecked ? '오늘 체크가 일괄 해제되었습니다.' : '오늘 목표를 모두 달성 처리했습니다! 🎉');
+        }
+
+        // 목표 이름 더블클릭 수정
+        function editHabitTitle(habitId) {
+            const habit = habits.find(h => h.id === habitId);
+            if (!habit) return;
+            const newTitle = prompt('수정할 목표 이름을 입력하세요:', habit.title);
+            if (newTitle !== null && newTitle.trim() !== '') {
+                habit.title = newTitle.trim();
+                saveAndRender();
+                showToast('목표 이름이 수정되었습니다.');
+            }
+        }
+
+        // 목표 위/아래 순서 이동
+        function moveHabit(habitId, direction) {
+            const index = habits.findIndex(h => h.id === habitId);
+            if (index === -1) return;
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= habits.length) return;
+
+            const temp = habits[index];
+            habits[index] = habits[targetIndex];
+            habits[targetIndex] = temp;
+            saveAndRender();
+        }
+
+        // 새 목표 추가
+        document.getElementById('habit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('habit-input');
+            const categoryEl = document.getElementById('habit-category');
+            const title = inputEl.value.trim();
+
+            if (!title) return;
+
+            habits.push({
+                id: Date.now(),
+                title: title,
+                category: categoryEl.value,
+                checks: [false, false, false, false, false, false, false]
+            });
+
+            inputEl.value = '';
+            saveAndRender();
+            showToast('새로운 목표가 추가되었습니다.');
+        });
+
+        // 목표 삭제
+        function deleteHabit(habitId) {
+            if (confirm('이 목표를 삭제하시겠습니까?')) {
+                habits = habits.filter(h => h.id !== habitId);
+                saveAndRender();
+                showToast('목표가 삭제되었습니다.');
+            }
+        }
+
+        // 주간 초기화
+        function resetWeek() {
+            if (confirm('새로운 한 주를 시작하기 위해 체크 기록을 모두 초기화할까요?\n(등록된 목표 목록과 회고 메모는 유지됩니다)')) {
+                habits.forEach(habit => {
+                    habit.checks = [false, false, false, false, false, false, false];
+                });
+                saveAndRender();
+                showToast('주간 체크 기록이 초기화되었습니다.');
+            }
+        }
+
+        // ---------------- 주간 회고 메모장 로직 ----------------
+        function initMemos() {
+            const keepEl = document.getElementById('memo-keep');
+            const problemEl = document.getElementById('memo-problem');
+            const tryEl = document.getElementById('memo-try');
+            const freeEl = document.getElementById('memo-free');
+
+            keepEl.value = memos.keep || '';
+            problemEl.value = memos.problem || '';
+            tryEl.value = memos.try || '';
+            freeEl.value = memos.free || '';
+            updateCharCount();
+
+            const saveMemos = () => {
+                memos = {
+                    keep: keepEl.value,
+                    problem: problemEl.value,
+                    try: tryEl.value,
+                    free: freeEl.value
+                };
+                localStorage.setItem('weekly_memos_v2', JSON.stringify(memos));
+                updateCharCount();
+                
+                const statusEl = document.getElementById('memo-save-status');
+                statusEl.innerHTML = `<i class="fa-solid fa-check"></i> 저장됨 (${new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'})})`;
+            };
+
+            [keepEl, problemEl, tryEl, freeEl].forEach(el => {
+                el.addEventListener('input', saveMemos);
+            });
+        }
+
+        function updateCharCount() {
+            const len = (document.getElementById('memo-free').value || '').length;
+            document.getElementById('memo-char-count').textContent = `${len.toLocaleString()}자`;
+        }
+
+        function clearMemos() {
+            if (confirm('작성한 주간 회고와 자유 메모를 모두 비우시겠습니까?')) {
+                memos = { keep: '', problem: '', try: '', free: '' };
+                localStorage.setItem('weekly_memos_v2', JSON.stringify(memos));
+                initMemos();
+                showToast('회고 메모가 초기화되었습니다.');
+            }
+        }
+
+        // ---------------- 리포트 복사 & 백업/복원 ----------------
+        function copyWeeklyReport() {
+            const totalChecks = habits.reduce((acc, h) => acc + h.checks.filter(Boolean).length, 0);
+            const weeklyPercent = habits.length ? Math.round((totalChecks / (habits.length * 7)) * 100) : 0;
+
+            let report = `📅 [주간 습관 & 회고 리포트] (${document.getElementById('current-date-display').textContent})\n`;
+            report += `📊 주간 전체 달성률: ${weeklyPercent}%\n\n`;
+            report += `✅ [목표별 달성 현황]\n`;
+            habits.forEach(h => {
+                const count = h.checks.filter(Boolean).length;
+                const ox = h.checks.map(c => c ? '●' : '○').join('');
+                report += `- [${h.category}] ${h.title}: ${count}/7일 (${ox})\n`;
+            });
+
+            report += `\n📝 [주간 KPT 회고]\n`;
+            report += `🟢 Keep: ${memos.keep || '-'}\n`;
+            report += `🔴 Problem: ${memos.problem || '-'}\n`;
+            report += `🔵 Try: ${memos.try || '-'}\n`;
+            if (memos.free) {
+                report += `\n💡 [자유 메모]\n${memos.free}\n`;
+            }
+
+            navigator.clipboard.writeText(report).then(() => {
+                showToast('주간 리포트가 클립보드에 복사되었습니다!');
+            });
+        }
+
+        function exportData() {
+            const data = { habits, memos, exportedAt: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `habit-backup-${now.toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('백업 파일이 다운로드되었습니다.');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.habits && Array.isArray(imported.habits)) {
+                        habits = imported.habits;
+                    }
+                    if (imported.memos) {
+                        memos = imported.memos;
+                    }
+                    localStorage.setItem('weekly_habits_v2', JSON.stringify(habits));
+                    localStorage.setItem('weekly_memos_v2', JSON.stringify(memos));
+                    initMemos();
+                    saveAndRender();
+                    showToast('백업 데이터가 성공적으로 복원되었습니다!');
+                } catch (err) {
+                    alert('유효하지 않은 백업 파일입니다.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // XSS 방지 헬퍼
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag]));
+        }
+
+        // 초기 실행
+        initHeader();
+        initMemos();
+        saveAndRender();
+    </script>
+</body>
+</html>
