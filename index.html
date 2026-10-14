@@ -56,13 +56,7 @@
                 <input type="text" id="new-cat-name" placeholder="새 분류 이름 (예: 🎨 드로잉)" required
                     class="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <select id="new-cat-color" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none">
-                    <option value="indigo">🟦 파랑</option>
-                    <option value="emerald">🟩 초록</option>
-                    <option value="amber">🟨 노랑</option>
-                    <option value="purple">🟪 보라</option>
-                    <option value="rose">🟥 분홍</option>
-                    <option value="sky">🩵 하늘</option>
-                    <option value="slate">⬜ 회색</option>
+                    <!-- JS에서 colorOptions 순서대로 자동 생성됨 -->
                 </select>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shrink-0">
                     추가
@@ -288,16 +282,21 @@
 
         let currentFilter = '전체';
 
-        // 색상 테마 팔레트 매핑
-        const colorPalette = {
-            indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-            emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            amber: 'bg-amber-50 text-amber-700 border-amber-200',
-            purple: 'bg-purple-50 text-purple-700 border-purple-200',
-            rose: 'bg-rose-50 text-rose-700 border-rose-200',
-            sky: 'bg-sky-50 text-sky-700 border-sky-200',
-            slate: 'bg-slate-100 text-slate-700 border-slate-300'
-        };
+        // 요청하신 이미지 순서(위->아래, 좌->우) 그대로 구성된 12가지 하트 색상 옵션
+        const colorOptions = [
+            { value: 'pink',    label: '🩷 핑크', badge: 'bg-pink-50 text-pink-600 border-pink-200' },
+            { value: 'rose',    label: '❤️ 빨강', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+            { value: 'orange',  label: '🧡 주황', badge: 'bg-orange-50 text-orange-700 border-orange-200' },
+            { value: 'amber',   label: '💛 노랑', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+            { value: 'emerald', label: '💚 초록', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            { value: 'sky',     label: '🩵 하늘', badge: 'bg-sky-50 text-sky-700 border-sky-200' },
+            { value: 'indigo',  label: '💙 파랑', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+            { value: 'purple',  label: '💜 보라', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
+            { value: 'black',   label: '🖤 검정', badge: 'bg-slate-800 text-white border-slate-900' },
+            { value: 'slate',   label: '🩶 회색', badge: 'bg-slate-100 text-slate-700 border-slate-300' },
+            { value: 'white',   label: '🤍 하양', badge: 'bg-white text-slate-700 border-slate-300 shadow-2xs' },
+            { value: 'brown',   label: '🤎 갈색', badge: 'bg-amber-900/10 text-amber-900 border-amber-800/30' }
+        ];
 
         // 기본 카테고리 목록
         const defaultCategories = [
@@ -321,7 +320,14 @@
         let habits = JSON.parse(localStorage.getItem('weekly_habits_v2')) || defaultHabits;
         let memos = JSON.parse(localStorage.getItem('weekly_memos_v2')) || defaultMemos;
 
-        // 기존 구버전 카테고리 이름('집중', '건강' 등) 호환 처리
+        // 새 카테고리 추가 모달의 색상 선택창 초기화
+        function initColorSelect() {
+            const newCatColorEl = document.getElementById('new-cat-color');
+            newCatColorEl.innerHTML = colorOptions.map(opt => 
+                `<option value="${opt.value}">${opt.label}</option>`
+            ).join('');
+        }
+
         function syncLegacyCategories() {
             const existingNames = new Set(categories.map(c => c.name));
             habits.forEach(h => {
@@ -334,8 +340,10 @@
         }
 
         function getCategoryBadgeClass(catName) {
-            const found = categories.find(c => c.name === catName);
-            return found ? (colorPalette[found.color] || colorPalette.slate) : colorPalette.slate;
+            const foundCat = categories.find(c => c.name === catName);
+            const colorKey = foundCat ? foundCat.color : 'slate';
+            const foundOpt = colorOptions.find(o => o.value === colorKey);
+            return foundOpt ? foundOpt.badge : colorOptions[9].badge;
         }
 
         function showToast(msg) {
@@ -361,7 +369,6 @@
             });
         }
 
-        // 카테고리 셀렉트 박스 및 필터 탭 렌더링
         function renderCategoryControls() {
             const selectEl = document.getElementById('habit-category');
             const filterContainer = document.getElementById('filter-tabs');
@@ -399,21 +406,19 @@
         function renderModalCategories() {
             const listEl = document.getElementById('modal-category-list');
             listEl.innerHTML = categories.map((c, idx) => {
-                const badgeClass = colorPalette[c.color] || colorPalette.slate;
+                const badgeClass = getCategoryBadgeClass(c.name);
+                const optionsHtml = colorOptions.map(opt => 
+                    `<option value="${opt.value}" ${c.color === opt.value ? 'selected' : ''}>${opt.label}</option>`
+                ).join('');
+
                 return `
                     <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
                         <span onclick="renameCategory(${idx})" class="text-xs px-3 py-1 rounded-full border font-semibold cursor-pointer hover:opacity-80 transition ${badgeClass}" title="클릭하여 이름 수정">
                             ${escapeHtml(c.name)} <i class="fa-solid fa-pen text-[10px] ml-1 opacity-60"></i>
                         </span>
                         <div class="flex items-center gap-2">
-                            <select onchange="changeCategoryColor(${idx}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-600">
-                                <option value="indigo" ${c.color === 'indigo' ? 'selected' : ''}>🟦 파랑</option>
-                                <option value="emerald" ${c.color === 'emerald' ? 'selected' : ''}>🟩 초록</option>
-                                <option value="amber" ${c.color === 'amber' ? 'selected' : ''}>🟨 노랑</option>
-                                <option value="purple" ${c.color === 'purple' ? 'selected' : ''}>🟪 보라</option>
-                                <option value="rose" ${c.color === 'rose' ? 'selected' : ''}>🟥 분홍</option>
-                                <option value="sky" ${c.color === 'sky' ? 'selected' : ''}>🩵 하늘</option>
-                                <option value="slate" ${c.color === 'slate' ? 'selected' : ''}>⬜ 회색</option>
+                            <select onchange="changeCategoryColor(${idx}, this.value)" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium">
+                                ${optionsHtml}
                             </select>
                             <button onclick="deleteCategory(${idx})" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 transition" title="분류 삭제">
                                 <i class="fa-regular fa-trash-can text-xs"></i>
@@ -490,7 +495,6 @@
             saveAndRender();
         }
 
-        // 목표의 카테고리 뱃지 클릭 시 다음 카테고리로 순환 변경
         function cycleHabitCategory(habitId) {
             const habit = habits.find(h => h.id === habitId);
             if (!habit || categories.length === 0) return;
@@ -895,6 +899,7 @@
         }
 
         // 초기 실행
+        initColorSelect();
         syncLegacyCategories();
         initHeader();
         renderCategoryControls();
